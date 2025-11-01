@@ -1,682 +1,683 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>记忆生长地图 - 小城日常</title>
-<style>
-* {
-margin: 0;
-padding: 0;
-box-sizing: border-box;
-font-family: 'Comic Sans MS', 'Yu Gothic', 'Hiragino Sans GB', sans-serif;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆生长地图 - 小城日常</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Comic Sans MS', 'Yu Gothic', 'Hiragino Sans GB', sans-serif;
+        }
 
-body {
-background: linear-gradient(135deg, #e0f7fa, #bbdefb);
-min-height: 100vh;
-color: #333;
-overflow-x: hidden;
-}
+        body {
+            background: linear-gradient(135deg, #e0f7fa, #bbdefb);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
 
-.container {
-max-width: 1400px;
-margin: 0 auto;
-padding: 20px;
-display: grid;
-grid-template-columns: 300px 1fr;
-gap: 20px;
-}
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
 
-header {
-grid-column: 1 / -1;
-text-align: center;
-margin-bottom: 20px;
-}
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-h1 {
-font-size: 2.8rem;
-color: #5d4037;
-text-shadow: 3px 3px 0 #ffccbc;
-margin-bottom: 10px;
-}
+        h1 {
+            font-size: 2.8rem;
+            color: #5d4037;
+            text-shadow: 3px 3px 0 #ffccbc;
+            margin-bottom: 10px;
+        }
 
-.subtitle {
-font-size: 1.2rem;
-color: #795548;
-margin-bottom: 20px;
-}
+        .subtitle {
+            font-size: 1.2rem;
+            color: #795548;
+            margin-bottom: 20px;
+        }
 
-/* 侧边栏样式 */
-.sidebar {
-background: #fffde7;
-border: 4px solid #5d4037;
-border-radius: 12px;
-box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
-padding: 20px;
-height: fit-content;
-}
+        /* 侧边栏样式 */
+        .sidebar {
+            background: #fffde7;
+            border: 4px solid #5d4037;
+            border-radius: 12px;
+            box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
+            padding: 20px;
+            height: fit-content;
+        }
 
-.memory-form {
-margin-bottom: 30px;
-}
+        .memory-form {
+            margin-bottom: 30px;
+        }
 
-.form-group {
-margin-bottom: 15px;
-}
+        .form-group {
+            margin-bottom: 15px;
+        }
 
-.form-group label {
-display: block;
-margin-bottom: 5px;
-font-weight: bold;
-color: #5d4037;
-}
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #5d4037;
+        }
 
-.form-control {
-width: 100%;
-padding: 10px;
-border: 2px solid #a1887f;
-border-radius: 8px;
-background: white;
-font-size: 1rem;
-}
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #a1887f;
+            border-radius: 8px;
+            background: white;
+            font-size: 1rem;
+        }
 
-textarea.form-control {
-min-height: 100px;
-resize: vertical;
-}
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
 
-.memory-list {
-max-height: 400px;
-overflow-y: auto;
-}
+        .memory-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
 
-.memory-item {
-background: white;
-border: 2px solid #a1887f;
-border-radius: 8px;
-padding: 15px;
-margin-bottom: 10px;
-cursor: pointer;
-transition: all 0.3s;
-}
+        .memory-item {
+            background: white;
+            border: 2px solid #a1887f;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
 
-.memory-item:hover {
-transform: translateY(-3px);
-box-shadow: 0 5px 0 #a1887f;
-}
+        .memory-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 0 #a1887f;
+        }
 
-.memory-item.active {
-border-color: #ff5722;
-background: #fff3e0;
-}
+        .memory-item.active {
+            border-color: #ff5722;
+            background: #fff3e0;
+        }
 
-.memory-title {
-font-weight: bold;
-color: #5d4037;
-margin-bottom: 5px;
-}
+        .memory-title {
+            font-weight: bold;
+            color: #5d4037;
+            margin-bottom: 5px;
+        }
 
-.memory-date {
-font-size: 0.8rem;
-color: #8d6e63;
-}
+        .memory-date {
+            font-size: 0.8rem;
+            color: #8d6e63;
+        }
 
-/* 地图容器样式 */
-.map-container {
-background: #fffde7;
-border: 4px solid #5d4037;
-border-radius: 12px;
-box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
-padding: 20px;
-position: relative;
-overflow: hidden;
-min-height: 600px;
-}
+        /* 地图容器样式 */
+        .map-container {
+            background: #fffde7;
+            border: 4px solid #5d4037;
+            border-radius: 12px;
+            box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            min-height: 600px;
+        }
 
-.base-map {
-width: 100%;
-height: 100%;
-background: #c8e6c9;
-border-radius: 8px;
-position: relative;
-overflow: hidden;
-}
+        .base-map {
+            width: 100%;
+            height: 100%;
+            background: #c8e6c9;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
 
-/* 记忆元素样式 */
-.memory-element {
-position: absolute;
-transition: all 0.8s ease-out;
-transform-origin: center;
-cursor: pointer;
-z-index: 10;
-}
+        /* 记忆元素样式 */
+        .memory-element {
+            position: absolute;
+            transition: all 0.8s ease-out;
+            transform-origin: center;
+            cursor: pointer;
+            z-index: 10;
+        }
 
-.memory-element.growing {
-animation: growElement 1.5s ease-out forwards;
-}
+        .memory-element.growing {
+            animation: growElement 1.5s ease-out forwards;
+        }
 
-@keyframes growElement {
-0% {
-transform: scale(0) rotate(-10deg);
-opacity: 0;
-}
-70% {
-transform: scale(1.1) rotate(5deg);
-}
-100% {
-transform: scale(1) rotate(0);
-opacity: 1;
-}
-}
+        @keyframes growElement {
+            0% {
+                transform: scale(0) rotate(-10deg);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.1) rotate(5deg);
+            }
+            100% {
+                transform: scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
 
-.memory-bubble {
-background: white;
-border: 3px solid #5d4037;
-border-radius: 20px;
-padding: 15px;
-max-width: 200px;
-box-shadow: 5px 5px 0 rgba(93, 64, 55, 0.2);
-position: relative;
-}
+        .memory-bubble {
+            background: white;
+            border: 3px solid #5d4037;
+            border-radius: 20px;
+            padding: 15px;
+            max-width: 200px;
+            box-shadow: 5px 5px 0 rgba(93, 64, 55, 0.2);
+            position: relative;
+        }
 
-.memory-bubble:after {
-content: '';
-position: absolute;
-bottom: -15px;
-left: 50%;
-transform: translateX(-50%);
-border-width: 15px 15px 0;
-border-style: solid;
-border-color: white transparent;
-}
+        .memory-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 15px 15px 0;
+            border-style: solid;
+            border-color: white transparent;
+        }
 
-.memory-bubble:before {
-content: '';
-position: absolute;
-bottom: -19px;
-left: 50%;
-transform: translateX(-50%);
-border-width: 17px 17px 0;
-border-style: solid;
-border-color: #5d4037 transparent;
-}
+        .memory-bubble:before {
+            content: '';
+            position: absolute;
+            bottom: -19px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 17px 17px 0;
+            border-style: solid;
+            border-color: #5d4037 transparent;
+        }
 
-.memory-icon {
-font-size: 2rem;
-text-align: center;
-margin-bottom: 10px;
-}
+        .memory-icon {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
 
-.memory-content {
-text-align: center;
-}
+        .memory-content {
+            text-align: center;
+        }
 
-.memory-element-title {
-font-weight: bold;
-margin-bottom: 5px;
-color: #5d4037;
-}
+        .memory-element-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #5d4037;
+        }
 
-.memory-element-date {
-font-size: 0.8rem;
-color: #8d6e63;
-}
+        .memory-element-date {
+            font-size: 0.8rem;
+            color: #8d6e63;
+        }
 
-/* 记忆详情面板 */
-.memory-detail {
-position: absolute;
-top: 30px;
-right: 30px;
-width: 350px;
-background: white;
-border: 3px solid #5d4037;
-border-radius: 12px;
-padding: 20px;
-box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
-display: none;
-z-index: 100;
-}
+        /* 记忆详情面板 */
+        .memory-detail {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 350px;
+            background: white;
+            border: 3px solid #5d4037;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
+            display: none;
+            z-index: 100;
+        }
 
-.memory-detail.active {
-display: block;
-animation: fadeIn 0.5s ease-out;
-}
+        .memory-detail.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
 
-@keyframes fadeIn {
-from { opacity: 0; transform: translateY(20px); }
-to { opacity: 1; transform: translateY(0); }
-}
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-.detail-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 15px;
-border-bottom: 2px solid #ffccbc;
-padding-bottom: 10px;
-}
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ffccbc;
+            padding-bottom: 10px;
+        }
 
-.detail-title {
-font-size: 1.5rem;
-color: #5d4037;
-flex-grow: 1;
-}
+        .detail-title {
+            font-size: 1.5rem;
+            color: #5d4037;
+            flex-grow: 1;
+        }
 
-.close-detail {
-background: #ffab91;
-color: #5d4037;
-border: 2px solid #5d4037;
-width: 30px;
-height: 30px;
-border-radius: 50%;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-font-weight: bold;
-}
+        .close-detail {
+            background: #ffab91;
+            color: #5d4037;
+            border: 2px solid #5d4037;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
 
-.detail-content {
-margin-bottom: 15px;
-}
+        .detail-content {
+            margin-bottom: 15px;
+        }
 
-.detail-image {
-width: 100%;
-border-radius: 8px;
-margin-bottom: 15px;
-border: 2px solid #a1887f;
-}
+        .detail-image {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 2px solid #a1887f;
+        }
 
-.detail-text {
-line-height: 1.6;
-margin-bottom: 15px;
-}
+        .detail-text {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
 
-.detail-audio {
-width: 100%;
-margin-bottom: 15px;
-}
+        .detail-audio {
+            width: 100%;
+            margin-bottom: 15px;
+        }
 
-/* 按钮样式 */
-.comic-button {
-background: #ffab91;
-color: #5d4037;
-border: 3px solid #5d4037;
-padding: 10px 20px;
-font-size: 1rem;
-font-weight: bold;
-border-radius: 8px;
-cursor: pointer;
-box-shadow: 4px 4px 0 #5d4037;
-transition: all 0.2s;
-display: inline-block;
-text-align: center;
-}
+        /* 按钮样式 */
+        .comic-button {
+            background: #ffab91;
+            color: #5d4037;
+            border: 3px solid #5d4037;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #5d4037;
+            transition: all 0.2s;
+            display: inline-block;
+            text-align: center;
+        }
 
-.comic-button:hover {
-transform: translate(2px, 2px);
-box-shadow: 2px 2px 0 #5d4037;
-}
+        .comic-button:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #5d4037;
+        }
 
-.comic-button.full-width {
-width: 100%;
-}
+        .comic-button.full-width {
+            width: 100%;
+        }
 
-/* 响应式设计 */
-@media (max-width: 1100px) {
-.container {
-grid-template-columns: 1fr;
-}
+        /* 响应式设计 */
+        @media (max-width: 1100px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
 
-.sidebar {
-order: 2;
-}
+            .sidebar {
+                order: 2;
+            }
 
-.map-container {
-order: 1;
-min-height: 500px;
-}
-}
+            .map-container {
+                order: 1;
+                min-height: 500px;
+            }
+        }
 
-@media (max-width: 768px) {
-h1 {
-font-size: 2rem;
-}
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
 
-.memory-detail {
-width: calc(100% - 60px);
-}
-}
-</style>
+            .memory-detail {
+                width: calc(100% - 60px);
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="container">
-<header>
-<h1>记忆生长地图</h1>
-<p class="subtitle">每一段记忆，都是小城日常的独特风景</p>
-</header>
+    <header>
+        <h1>记忆生长地图</h1>
+        <p class="subtitle">每一段记忆，都是小城日常的独特风景</p>
+    </header>
 
-<div class="sidebar">
-<div class="memory-form">
-<h2>添加新记忆</h2>
-<div class="form-group">
-<label for="memoryTitle">记忆标题</label>
-<input type="text" id="memoryTitle" class="form-control" placeholder="例如：食在广州">
-</div>
-<div class="form-group">
-<label for="memoryType">记忆类型</label>
-<select id="memoryType" class="form-control">
-<option value="food">美食记忆</option>
-<option value="travel">旅行记忆</option>
-<option value="family">家庭记忆</option>
-<option value="friend">朋友记忆</option>
-<option value="work">工作记忆</option>
-<option value="study">学习记忆</option>
-</select>
-</div>
-<div class="form-group">
-<label for="memoryDate">记忆日期</label>
-<input type="date" id="memoryDate" class="form-control">
-</div>
-<div class="form-group">
-<label for="memoryContent">记忆内容</label>
-<textarea id="memoryContent" class="form-control" placeholder="描述这段记忆..."></textarea>
-</div>
-<div class="form-group">
-<label for="memoryImage">上传图片</label>
-<input type="file" id="memoryImage" class="form-control" accept="image/*">
-</div>
-<div class="form-group">
-<label for="memoryAudio">上传音频</label>
-<input type="file" id="memoryAudio" class="form-control" accept="audio/*">
-</div>
-<button id="addMemory" class="comic-button full-width">添加到记忆地图</button>
-</div>
+    <div class="sidebar">
+        <div class="memory-form">
+            <h2>添加新记忆</h2>
+            <div class="form-group">
+                <label for="memoryTitle">记忆标题</label>
+                <input type="text" id="memoryTitle" class="form-control" placeholder="例如：食在广州">
+            </div>
+            <div class="form-group">
+                <label for="memoryType">记忆类型</label>
+                <select id="memoryType" class="form-control">
+                    <option value="food">美食记忆</option>
+                    <option value="travel">旅行记忆</option>
+                    <option value="family">家庭记忆</option>
+                    <option value="friend">朋友记忆</option>
+                    <option value="work">工作记忆</option>
+                    <option value="study">学习记忆</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="memoryDate">记忆日期</label>
+                <input type="date" id="memoryDate" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="memoryContent">记忆内容</label>
+                <textarea id="memoryContent" class="form-control" placeholder="描述这段记忆..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="memoryImage">上传图片</label>
+                <input type="file" id="memoryImage" class="form-control" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label for="memoryAudio">上传音频</label>
+                <input type="file" id="memoryAudio" class="form-control" accept="audio/*">
+            </div>
+            <button id="addMemory" class="comic-button full-width">添加到记忆地图</button>
+        </div>
 
-<div class="memory-list">
-<h2>记忆列表</h2>
-<div id="memoriesContainer">
-<!-- 记忆项将通过JS动态添加 -->
-</div>
-</div>
-</div>
+        <div class="memory-list">
+            <h2>记忆列表</h2>
+            <div id="memoriesContainer">
+                <!-- 记忆项将通过JS动态添加 -->
+            </div>
+        </div>
+    </div>
 
-<div class="map-container">
-<div class="base-map" id="baseMap">
-<!-- 记忆元素将通过JS动态添加 -->
-</div>
+    <div class="map-container">
+        <div class="base-map" id="baseMap">
+            <!-- 记忆元素将通过JS动态添加 -->
+        </div>
 
-<div class="memory-detail" id="memoryDetail">
-<div class="detail-header">
-<h3 class="detail-title" id="detailTitle">记忆标题</h3>
-<div class="close-detail" id="closeDetail">×</div>
-</div>
-<div class="detail-content">
-<img src="" alt="记忆图片" class="detail-image" id="detailImage">
-<p class="detail-text" id="detailText">记忆内容...</p>
-<audio controls class="detail-audio" id="detailAudio">
-您的浏览器不支持音频元素。
-</audio>
-</div>
-<div class="detail-date" id="detailDate">日期：</div>
-</div>
-</div>
+        <div class="memory-detail" id="memoryDetail">
+            <div class="detail-header">
+                <h3 class="detail-title" id="detailTitle">记忆标题</h3>
+                <div class="close-detail" id="closeDetail">×</div>
+            </div>
+            <div class="detail-content">
+                <img src="" alt="记忆图片" class="detail-image" id="detailImage">
+                <p class="detail-text" id="detailText">记忆内容...</p>
+                <audio controls class="detail-audio" id="detailAudio">
+                    您的浏览器不支持音频元素。
+                </audio>
+            </div>
+            <div class="detail-date" id="detailDate">日期：</div>
+        </div>
+    </div>
 </div>
 
 <script>
-// 记忆数据存储
-let memories = JSON.parse(localStorage.getItem('memories')) || [];
-let nextMemoryId = memories.length > 0 ? Math.max(...memories.map(m => m.id)) + 1 : 1;
+    // 记忆数据存储
+    let memories = JSON.parse(localStorage.getItem('memories')) || [];
+    let nextMemoryId = memories.length > 0 ? Math.max(...memories.map(m => m.id)) + 1 : 1;
 
-// DOM元素
-const baseMap = document.getElementById('baseMap');
-const memoriesContainer = document.getElementById('memoriesContainer');
-const memoryDetail = document.getElementById('memoryDetail');
-const detailTitle = document.getElementById('detailTitle');
-const detailText = document.getElementById('detailText');
-const detailImage = document.getElementById('detailImage');
-const detailAudio = document.getElementById('detailAudio');
-const detailDate = document.getElementById('detailDate');
-const closeDetail = document.getElementById('closeDetail');
-const addMemoryBtn = document.getElementById('addMemory');
+    // DOM元素
+    const baseMap = document.getElementById('baseMap');
+    const memoriesContainer = document.getElementById('memoriesContainer');
+    const memoryDetail = document.getElementById('memoryDetail');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailText = document.getElementById('detailText');
+    const detailImage = document.getElementById('detailImage');
+    const detailAudio = document.getElementById('detailAudio');
+    const detailDate = document.getElementById('detailDate');
+    const closeDetail = document.getElementById('closeDetail');
+    const addMemoryBtn = document.getElementById('addMemory');
 
-// 记忆类型配置
-const memoryTypes = {
-food: { icon: '🍜', color: '#ffab91', name: '美食记忆' },
-travel: { icon: '✈️', color: '#81d4fa', name: '旅行记忆' },
-family: { icon: '👨‍👩‍👧', color: '#ce93d8', name: '家庭记忆' },
-friend: { icon: '👫', color: '#a5d6a7', name: '朋友记忆' },
-work: { icon: '💼', color: '#ffcc80', name: '工作记忆' },
-study: { icon: '📚', color: '#90caf9', name: '学习记忆' }
-};
+    // 记忆类型配置
+    const memoryTypes = {
+        food: { icon: '🍜', color: '#ffab91', name: '美食记忆' },
+        travel: { icon: '✈️', color: '#81d4fa', name: '旅行记忆' },
+        family: { icon: '👨‍👩‍👧', color: '#ce93d8', name: '家庭记忆' },
+        friend: { icon: '👫', color: '#a5d6a7', name: '朋友记忆' },
+        work: { icon: '💼', color: '#ffcc80', name: '工作记忆' },
+        study: { icon: '📚', color: '#90caf9', name: '学习记忆' }
+    };
 
-// 初始化
-document.addEventListener('DOMContentLoaded', function() {
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
 // 加载已有记忆
-loadMemories();
+        loadMemories();
 
 // 添加记忆事件
-addMemoryBtn.addEventListener('click', addNewMemory);
+        addMemoryBtn.addEventListener('click', addNewMemory);
 
 // 关闭详情面板
-closeDetail.addEventListener('click', function() {
-memoryDetail.classList.remove('active');
-});
+        closeDetail.addEventListener('click', function() {
+            memoryDetail.classList.remove('active');
+        });
 
 // 点击地图空白处关闭详情
-baseMap.addEventListener('click', function(e) {
-if (e.target === baseMap) {
-memoryDetail.classList.remove('active');
-}
-});
-});
+        baseMap.addEventListener('click', function(e) {
+            if (e.target === baseMap) {
+                memoryDetail.classList.remove('active');
+            }
+        });
+    });
 
-// 加载记忆
-function loadMemories() {
+    // 加载记忆
+    function loadMemories() {
 // 清空容器
-memoriesContainer.innerHTML = '';
+        memoriesContainer.innerHTML = '';
 
 // 按日期排序（最新的在前）
-const sortedMemories = [...memories].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedMemories = [...memories].sort((a, b) => new Date(b.date) - new Date(a.date));
 
 // 添加记忆到列表
-sortedMemories.forEach(memory => {
-addMemoryToList(memory);
-addMemoryToMap(memory);
-});
-}
+        sortedMemories.forEach(memory => {
+            addMemoryToList(memory);
+            addMemoryToMap(memory);
+        });
+    }
 
-// 添加记忆到列表
-function addMemoryToList(memory) {
-const memoryItem = document.createElement('div');
-memoryItem.className = 'memory-item';
-memoryItem.dataset.id = memory.id;
+    // 添加记忆到列表
+    function addMemoryToList(memory) {
+        const memoryItem = document.createElement('div');
+        memoryItem.className = 'memory-item';
+        memoryItem.dataset.id = memory.id;
 
-memoryItem.innerHTML = `
+        memoryItem.innerHTML = `
 <div class="memory-title">${memory.title}</div>
 <div class="memory-date">${formatDate(memory.date)} • ${memoryTypes[memory.type].name}</div>
 `;
 
-memoryItem.addEventListener('click', function() {
+        memoryItem.addEventListener('click', function() {
 // 高亮显示
-document.querySelectorAll('.memory-item').forEach(item => {
-item.classList.remove('active');
-});
-this.classList.add('active');
+            document.querySelectorAll('.memory-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            this.classList.add('active');
 
 // 显示详情
-showMemoryDetail(memory);
-});
+            showMemoryDetail(memory);
+        });
 
-memoriesContainer.appendChild(memoryItem);
-}
+        memoriesContainer.appendChild(memoryItem);
+    }
 
-// 添加记忆到地图
-function addMemoryToMap(memory, animate = false) {
+    // 添加记忆到地图
+    function addMemoryToMap(memory, animate = false) {
 // 1. 定义一个建筑图片映射
-const buildingImages = {
-    food: 'images/food_memory.png',
-    travel: 'images/travel_memory.png',
-    study: 'images/study_memory.png',
-    family: 'images/family_memory.png',
-    friend: 'images/friend_memory.png',
-    work: 'images/work_memory.png'
-};
+        const buildingImages = {
+            food: 'images/food_memory.png',
+            travel: 'images/travel_memory.png',
+            study: 'images/study_memory.png',
+            family: 'images/family_memory.png',
+            friend: 'images/friend_memory.png',
+            work: 'images/work_memory.png'
+        };
 
 // 2. 获取对应的图片路径
-const buildingImageSrc = buildingImages[memory.type];
+        const buildingImageSrc = buildingImages[memory.type];
 
-const memoryElement = document.createElement('div');
-memoryElement.className = 'memory-element';
-memoryElement.dataset.id = memory.id;
+        const memoryElement = document.createElement('div');
+        memoryElement.className = 'memory-element';
+        memoryElement.dataset.id = memory.id;
 
 // 随机位置（在实际应用中，可以根据记忆内容生成特定位置）
-const x = 10 + Math.random() * 80;
-const y = 10 + Math.random() * 80;
+        const x = 10 + Math.random() * 80;
+        const y = 10 + Math.random() * 80;
 
-memoryElement.style.left = `${x}%`;
-memoryElement.style.top = `${y}%`;
+        memoryElement.style.left = `${x}%`;
+        memoryElement.style.top = `${y}%`;
 
 // 3. 不再用 bubble, 而是用 <img>
-memoryElement.innerHTML = `
+        memoryElement.innerHTML = `
     <img src="${buildingImageSrc}" alt="${memory.title}" style="width: 100px; height: auto;">
     <div class="memory-element-title" style="text-align: center; margin-top: 5px;">${memory.title}</div>
 `;
 
 // 添加点击事件
-memoryElement.addEventListener('click', function(e) {
-e.stopPropagation();
-showMemoryDetail(memory);
+        memoryElement.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showMemoryDetail(memory);
 
 // 在列表中也高亮显示
-document.querySelectorAll('.memory-item').forEach(item => {
-item.classList.remove('active');
-if (item.dataset.id == memory.id) {
-item.classList.add('active');
-}
-});
-});
+            document.querySelectorAll('.memory-item').forEach(item => {
+                item.classList.remove('active');
+// 使用 Number() 把字符串转为数字，然后用 === 比较
+                if (Number(item.dataset.id) === memory.id) {
+                    item.classList.add('active');
+                }
+            });
+        });
 
-baseMap.appendChild(memoryElement);
+        baseMap.appendChild(memoryElement);
 
 // 添加生长动画
-if (animate) {
-memoryElement.classList.add('growing');
+        if (animate) {
+            memoryElement.classList.add('growing');
 
 // 动画结束后移除类
-setTimeout(() => {
-memoryElement.classList.remove('growing');
-}, 1500);
-}
-}
+            setTimeout(() => {
+                memoryElement.classList.remove('growing');
+            }, 1500);
+        }
+    }
 
-// 显示记忆详情
-function showMemoryDetail(memory) {
-detailTitle.textContent = memory.title;
-detailText.textContent = memory.content;
-detailDate.textContent = `日期：${formatDate(memory.date)}`;
+    // 显示记忆详情
+    function showMemoryDetail(memory) {
+        detailTitle.textContent = memory.title;
+        detailText.textContent = memory.content;
+        detailDate.textContent = `日期：${formatDate(memory.date)}`;
 
 // 设置图片
-if (memory.image) {
-detailImage.src = memory.image;
-detailImage.style.display = 'block';
-} else {
-detailImage.style.display = 'none';
-}
+        if (memory.image) {
+            detailImage.src = memory.image;
+            detailImage.style.display = 'block';
+        } else {
+            detailImage.style.display = 'none';
+        }
 
 // 设置音频
-if (memory.audio) {
-detailAudio.src = memory.audio;
-detailAudio.style.display = 'block';
-} else {
-detailAudio.style.display = 'none';
-}
+        if (memory.audio) {
+            detailAudio.src = memory.audio;
+            detailAudio.style.display = 'block';
+        } else {
+            detailAudio.style.display = 'none';
+        }
 
-memoryDetail.classList.add('active');
-}
+        memoryDetail.classList.add('active');
+    }
 
-// 添加新记忆
-function addNewMemory() {
-const title = document.getElementById('memoryTitle').value;
-const type = document.getElementById('memoryType').value;
-const date = document.getElementById('memoryDate').value;
-const content = document.getElementById('memoryContent').value;
-const imageFile = document.getElementById('memoryImage').files[0];
-const audioFile = document.getElementById('memoryAudio').files[0];
+    // 添加新记忆
+    function addNewMemory() {
+        const title = document.getElementById('memoryTitle').value;
+        const type = document.getElementById('memoryType').value;
+        const date = document.getElementById('memoryDate').value;
+        const content = document.getElementById('memoryContent').value;
+        const imageFile = document.getElementById('memoryImage').files[0];
+        const audioFile = document.getElementById('memoryAudio').files[0];
 
-if (!title || !date || !content) {
-alert('请填写完整的记忆信息！');
-return;
-}
+        if (!title || !date || !content) {
+            alert('请填写完整的记忆信息！');
+            return;
+        }
 
 // 创建新记忆对象
-const newMemory = {
-id: nextMemoryId++,
-title,
-type,
-date,
-content,
-image: null,
-audio: null
-};
+        const newMemory = {
+            id: nextMemoryId++,
+            title,
+            type,
+            date,
+            content,
+            image: null,
+            audio: null
+        };
 
 // 处理图片文件
-if (imageFile) {
-const reader = new FileReader();
-reader.onload = function(e) {
-newMemory.image = e.target.result;
-finishAddingMemory(newMemory);
-};
-reader.readAsDataURL(imageFile);
-} else {
-finishAddingMemory(newMemory);
-}
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                newMemory.image = e.target.result;
+                finishAddingMemory(newMemory);
+            };
+            reader.readAsDataURL(imageFile);
+        } else {
+            finishAddingMemory(newMemory);
+        }
 
 // 处理音频文件
-if (audioFile) {
-const reader = new FileReader();
-reader.onload = function(e) {
-newMemory.audio = e.target.result;
+        if (audioFile) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                newMemory.audio = e.target.result;
 // 如果已经有图片，不需要再次调用finishAddingMemory
-if (!imageFile) {
-finishAddingMemory(newMemory);
-}
-};
-reader.readAsDataURL(audioFile);
-} else if (!imageFile) {
+                if (!imageFile) {
+                    finishAddingMemory(newMemory);
+                }
+            };
+            reader.readAsDataURL(audioFile);
+        } else if (!imageFile) {
 // 如果没有图片和音频，直接完成
-finishAddingMemory(newMemory);
-}
-}
+            finishAddingMemory(newMemory);
+        }
+    }
 
-// 完成添加记忆
-function finishAddingMemory(memory) {
+    // 完成添加记忆
+    function finishAddingMemory(memory) {
 // 添加到记忆数组
-memories.push(memory);
+        memories.push(memory);
 
 // 保存到本地存储
-localStorage.setItem('memories', JSON.stringify(memories));
+        localStorage.setItem('memories', JSON.stringify(memories));
 
 // 更新UI
-addMemoryToList(memory);
-addMemoryToMap(memory, true);
+        addMemoryToList(memory);
+        addMemoryToMap(memory, true);
 
 // 重置表单
-document.getElementById('memoryTitle').value = '';
-document.getElementById('memoryContent').value = '';
-document.getElementById('memoryImage').value = '';
-document.getElementById('memoryAudio').value = '';
+        document.getElementById('memoryTitle').value = '';
+        document.getElementById('memoryContent').value = '';
+        document.getElementById('memoryImage').value = '';
+        document.getElementById('memoryAudio').value = '';
 
 // 显示提示
-alert('记忆已成功添加到地图！');
-}
+        alert('记忆已成功添加到地图！');
+    }
 
-// 格式化日期
-function formatDate(dateString) {
-const date = new Date(dateString);
-return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-}
+    // 格式化日期
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
 </script>
 </body>
 </html>
