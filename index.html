@@ -48,6 +48,36 @@
             margin-bottom: 20px;
         }
 
+        /* 类别跳转选择器 */
+        .category-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .category-selector label {
+            font-weight: bold;
+            color: #5d4037;
+        }
+
+        .category-selector select {
+            padding: 8px 15px;
+            border: 3px solid #5d4037;
+            border-radius: 8px;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 rgba(93, 64, 55, 0.2);
+            transition: all 0.2s;
+        }
+
+        .category-selector select:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 rgba(93, 64, 55, 0.2);
+        }
+
         /* 侧边栏样式 */
         .sidebar {
             background: #fffde7;
@@ -243,6 +273,8 @@
             transform-origin: center;
             cursor: pointer;
             z-index: 10;
+            /* 关键：使用 CSS 变量来控制反向缩放 */
+            transform: scale(var(--inverse-scale, 1));
         }
 
         .memory-element.growing {
@@ -448,6 +480,18 @@
     <header>
         <h1>Memory Growing Space</h1>
         <p class="subtitle">Seed a memory, grow a world</p>
+        <div class="category-selector">
+            <label for="categoryJump">快速跳转：</label>
+            <select id="categoryJump">
+                <option value="">-- 选择类别 --</option>
+                <option value="food">🍜 美食记忆</option>
+                <option value="travel">✈️ 旅行记忆</option>
+                <option value="family">👨‍👩‍👧 家庭记忆</option>
+                <option value="friend">👫 朋友记忆</option>
+                <option value="work">💼 工作记忆</option>
+                <option value="study">📚 学习记忆</option>
+            </select>
+        </div>
     </header>
 
     <div class="sidebar">
@@ -536,6 +580,19 @@
     let memories = JSON.parse(localStorage.getItem('memories')) || [];
     let nextMemoryId = memories.length > 0 ? Math.max(...memories.map(m => m.id)) + 1 : 1;
 
+    // Panzoom 实例（全局）
+    let panzoomInstance = null;
+
+    // 类别中心点配置（像钟表一样分布在6个方向）
+    const categoryCenters = {
+        food: { angle: 0, x: 2200, y: 1500 },      // 3点钟方向
+        travel: { angle: 60, x: 2200, y: 800 },    // 1点钟方向
+        study: { angle: 120, x: 1500, y: 500 },    // 11点钟方向
+        family: { angle: 180, x: 800, y: 800 },    // 9点钟方向
+        friend: { angle: 240, x: 800, y: 1500 },   // 7点钟方向
+        work: { angle: 300, x: 1500, y: 2200 }     // 5点钟方向
+    };
+
     // DOM元素
     const baseMap = document.getElementById('baseMap');
     const memoriesContainer = document.getElementById('memoriesContainer');
@@ -584,11 +641,32 @@
             excludeClass: 'memory-element'
         };
 
-        // 在 baseMap 上初始化
-        const pz = Panzoom(baseMap, panzoomOptions);
+        // 在 baseMap 上初始化并保存实例
+        panzoomInstance = Panzoom(baseMap, panzoomOptions);
 
         // 启用鼠标滚轮缩放
-        baseMap.parentElement.addEventListener('wheel', pz.zoomWithWheel);
+        baseMap.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
+
+        // 监听缩放事件，动态调整元素尺寸
+        baseMap.addEventListener('panzoom:zoom', function(e) {
+            const scale = e.detail.scale;
+            const inverseScale = 1 / scale;
+
+            // 更新所有记忆元素的反向缩放
+            document.querySelectorAll('.memory-element').forEach(el => {
+                el.style.setProperty('--inverse-scale', inverseScale);
+            });
+        });
+
+        // 类别跳转功能
+        const categoryJump = document.getElementById('categoryJump');
+        categoryJump.addEventListener('change', function() {
+            const category = this.value;
+            if (category && categoryCenters[category]) {
+                jumpToCategory(category);
+                this.value = ''; // 重置选择器
+            }
+        });
 
         // 点击空白处关闭详情面板
         baseMap.addEventListener('panzoom:click', function(e) {
@@ -605,6 +683,13 @@
         baseMap.addEventListener('panzoom:panend', () => {
             baseMap.style.cursor = 'grab';
         });
+
+        // 初始化完成后，如果有记忆则自动缩放到合适视图
+        if (memories.length > 0) {
+            setTimeout(() => {
+                fitToMemories();
+            }, 100);
+        }
 
         // 拖动时切换光标
         baseMap.addEventListener('panzoom:panstart', () => {
@@ -718,34 +803,35 @@
         memoryElement.className = 'memory-element';
         memoryElement.dataset.id = memory.id;
 
-        // 随机位置（在实际应用中，可以根据记忆内容生成特定位置）
-        const x = 10 + Math.random() * 80;
-        const y = 10 + Math.random() * 80;
+        // 3. 使用聚类布局：在类别中心点附近随机分布
+        const center = categoryCenters[memory.type];
+        const spreadRadius = 300; // 聚类半径
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * spreadRadius;
 
-        memoryElement.style.left = `${x}%`;
-        memoryElement.style.top = `${y}%`;
+        const x = center.x + Math.cos(angle) * distance;
+        const y = center.y + Math.sin(angle) * distance;
 
-        // 3. 不再用 bubble, 而是用 <img>
+        memoryElement.style.left = `${x}px`;
+        memoryElement.style.top = `${y}px`;
+
+        // 4. 不再用 bubble, 而是用 <img>
         memoryElement.innerHTML = `
             <img src="${buildingImageSrc}" alt="${memory.title}" style="width: 100px; height: auto;">
             <div class="memory-element-title" style="text-align: center; margin-top: 5px;">${memory.title}</div>
         `;
 
-        // 1. 创建记忆节点
+        // 创建记忆节点
         const node = document.createElement('div');
         node.className = 'memory-node';
-        // 2. 使用记忆类型的颜色
         node.style.backgroundColor = memoryTypes[memory.type].color;
         node.style.borderColor = memoryTypes[memory.type].color;
         node.style.color = memoryTypes[memory.type].color;
 
-        // 3. 将节点附加到元素上
         memoryElement.appendChild(node);
-
-        // 4. 在元素上存储对节点的引用 (方便稍后计算位置)
         memoryElement.memoryNode = node;
 
-        // 5. 添加悬停事件来高亮线条
+        // 添加悬停事件来高亮线条
         memoryElement.addEventListener('mouseover', () => {
             document.querySelectorAll(`.connection-line[data-type="${memory.type}"]`).forEach(line => line.classList.add('highlight'));
         });
@@ -761,7 +847,6 @@
             // 在列表中也高亮显示
             document.querySelectorAll('.memory-item').forEach(item => {
                 item.classList.remove('active');
-                // 使用 Number() 把字符串转为数字，然后用 === 比较
                 if (Number(item.dataset.id) === memory.id) {
                     item.classList.add('active');
                 }
@@ -773,8 +858,6 @@
         // 添加生长动画
         if (animate) {
             memoryElement.classList.add('growing');
-
-            // 动画结束后移除类
             setTimeout(() => {
                 memoryElement.classList.remove('growing');
             }, 1500);
@@ -878,11 +961,18 @@
         // 更新该类型的线条
         updateMemoryLines(memory.type);
 
+        // 自动适应视图到所有节点
+        setTimeout(() => {
+            fitToMemories();
+        }, 1600); // 等待生长动画完成
+
         // 重置表单
         document.getElementById('memoryTitle').value = '';
         document.getElementById('memoryContent').value = '';
         document.getElementById('memoryImage').value = '';
         document.getElementById('memoryAudio').value = '';
+        document.getElementById('image-file-name').textContent = '未选择文件';
+        document.getElementById('audio-file-name').textContent = '未选择文件';
 
         // 显示提示
         alert('记忆已成功添加到地图！');
@@ -938,6 +1028,111 @@
             svgLayer.appendChild(path);
         }
     }
+
+    /**
+     * 自动缩放地图以适应所有记忆节点
+     */
+    function fitToMemories() {
+        if (!panzoomInstance || memories.length === 0) return;
+
+        const elements = memories.filter(m => m.element).map(m => m.element);
+        if (elements.length === 0) return;
+
+        // 计算所有节点的边界框
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        elements.forEach(el => {
+            const x = el.offsetLeft;
+            const y = el.offsetTop;
+            const width = el.offsetWidth;
+            const height = el.offsetHeight;
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + width);
+            maxY = Math.max(maxY, y + height);
+        });
+
+        // 添加20%的边距
+        const padding = 0.2;
+        const width = maxX - minX;
+        const height = maxY - minY;
+        minX -= width * padding;
+        minY -= height * padding;
+        maxX += width * padding;
+        maxY += height * padding;
+
+        // 计算需要的缩放比例
+        const container = baseMap.parentElement;
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+
+        const scaleX = containerWidth / contentWidth;
+        const scaleY = containerHeight / contentHeight;
+        const targetScale = Math.min(scaleX, scaleY, 5); // 不超过最大缩放
+
+        // 计算中心点
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        // 计算平移距离
+        const x = containerWidth / 2 - centerX * targetScale;
+        const y = containerHeight / 2 - centerY * targetScale;
+
+        // 执行缩放和平移（带动画）
+        panzoomInstance.zoom(targetScale, { animate: true });
+        setTimeout(() => {
+            panzoomInstance.pan(x, y, { animate: true });
+        }, 100);
+    }
+
+    /**
+     * 跳转到指定类别的节点簇
+     * @param {string} category - 类别名称
+     */
+    function jumpToCategory(category) {
+        if (!panzoomInstance || !categoryCenters[category]) return;
+
+        const categoryMemories = memories.filter(m => m.type === category && m.element);
+        if (categoryMemories.length === 0) {
+            alert(`还没有${memoryTypes[category].name}哦！`);
+            return;
+        }
+
+        // 计算该类别的边界框
+        const elements = categoryMemories.map(m => m.element);
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        elements.forEach(el => {
+            const x = el.offsetLeft;
+            const y = el.offsetTop;
+            const width = el.offsetWidth;
+            const height = el.offsetHeight;
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + width);
+            maxY = Math.max(maxY, y + height);
+        });
+
+        // 计算中心点和缩放
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        const container = baseMap.parentElement;
+        const targetScale = 1.5; // 固定缩放级别
+
+        const x = container.offsetWidth / 2 - centerX * targetScale;
+        const y = container.offsetHeight / 2 - centerY * targetScale;
+
+        // 执行动画跳转
+        panzoomInstance.zoom(targetScale, { animate: true });
+        setTimeout(() => {
+            panzoomInstance.pan(x, y, { animate: true });
+        }, 100);
+    }
+
 </script>
 </body>
 </html>
