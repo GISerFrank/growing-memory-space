@@ -86,6 +86,19 @@
             resize: vertical;
         }
 
+        .hidden-input {
+            display: none; /* 这会隐藏丑丑的默认按钮 */
+        }
+
+        .file-name-display {
+            display: block;
+            margin-top: 8px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #5d4037;
+            font-style: italic;
+        }
+
         .memory-list {
             max-height: 400px;
             overflow-y: auto;
@@ -384,12 +397,14 @@
                 <textarea id="memoryContent" class="form-control" placeholder="描述这段记忆..."></textarea>
             </div>
             <div class="form-group">
-                <label for="memoryImage">上传图片</label>
-                <input type="file" id="memoryImage" class="form-control" accept="image/*">
+                <label for="memoryImage" class="comic-button full-width">🎨 选择图片</label>
+                <span id="image-file-name" class="file-name-display">未选择文件</span>
+                <input type="file" id="memoryImage" class="hidden-input" accept="image/*">
             </div>
             <div class="form-group">
-                <label for="memoryAudio">上传音频</label>
-                <input type="file" id="memoryAudio" class="form-control" accept="audio/*">
+                <label for="memoryAudio" class="comic-button full-width">🎵 选择音频</label>
+                <span id="audio-file-name" class="file-name-display">未选择文件</span>
+                <input type="file" id="memoryAudio" class="hidden-input" accept="audio/*">
             </div>
             <button id="addMemory" class="comic-button full-width">添加到记忆地图</button>
         </div>
@@ -468,6 +483,28 @@
         baseMap.addEventListener('click', function(e) {
             if (e.target === baseMap) {
                 memoryDetail.classList.remove('active');
+            }
+        });
+
+        // 监听文件上传按钮，显示文件名
+        const memoryImageInput = document.getElementById('memoryImage');
+        const memoryAudioInput = document.getElementById('memoryAudio');
+        const imageFileName = document.getElementById('image-file-name');
+        const audioFileName = document.getElementById('audio-file-name');
+
+        memoryImageInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                imageFileName.textContent = this.files[0].name;
+            } else {
+                imageFileName.textContent = '未选择文件';
+            }
+        });
+
+        memoryAudioInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                audioFileName.textContent = this.files[0].name;
+            } else {
+                audioFileName.textContent = '未选择文件';
             }
         });
     });
