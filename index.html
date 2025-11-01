@@ -13,6 +13,10 @@
             font-family: 'Comic Sans MS', 'Yu Gothic', 'Hiragino Sans GB', sans-serif;
         }
 
+        :root {
+            --inverse-scale: 1; /* 定义默认值，避免CSS解析警告 */
+        }
+
         body {
             background: linear-gradient(135deg, #e0f7fa, #bbdefb);
             min-height: 100vh;
@@ -855,6 +859,12 @@
 
         baseMap.appendChild(memoryElement);
 
+        // 初始化时设置反向缩放（基于当前缩放级别）
+        if (panzoomInstance) {
+            const currentScale = panzoomInstance.getScale();
+            memoryElement.style.setProperty('--inverse-scale', 1 / currentScale);
+        }
+
         // 添加生长动画
         if (animate) {
             memoryElement.classList.add('growing');
@@ -1117,20 +1127,25 @@
             maxY = Math.max(maxY, y + height);
         });
 
-        // 计算中心点和缩放
+        // 计算中心点
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
         const container = baseMap.parentElement;
         const targetScale = 1.5; // 固定缩放级别
 
+        // 关键修复：使用 Panzoom 的 reset + zoom + pan 组合
+        // 1. 先重置到初始状态
+        panzoomInstance.reset({ animate: false });
+
+        // 2. 设置缩放（不带动画，避免中间状态）
+        panzoomInstance.zoom(targetScale, { animate: false });
+
+        // 3. 计算在新缩放级别下的平移距离
         const x = container.offsetWidth / 2 - centerX * targetScale;
         const y = container.offsetHeight / 2 - centerY * targetScale;
 
-        // 执行动画跳转
-        panzoomInstance.zoom(targetScale, { animate: true });
-        setTimeout(() => {
-            panzoomInstance.pan(x, y, { animate: true });
-        }, 100);
+        // 4. 执行平移（带动画）
+        panzoomInstance.pan(x, y, { animate: true });
     }
 
 </script>
