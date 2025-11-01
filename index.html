@@ -1102,7 +1102,30 @@
      * 跳转到指定类别的节点簇
      * @param {string} category - 类别名称
      */
+    /**
+     * 跳转到指定类别的节点簇
+     * @param {string} category - 类别名称
+     */
     function jumpToCategory(category) {
+
+        // --- 调试代码 ---
+        console.log("--- 调试 jumpToCategory ---");
+        console.log("panzoomInstance 是:", panzoomInstance);
+
+        // 尝试检查 panzoomInstance 上的 zoom 方法
+        if (panzoomInstance && typeof panzoomInstance.zoom === 'function') {
+            console.log("panzoomInstance.zoom 方法存在。");
+        } else {
+            console.error("panzoomInstance.zoom 方法不存在或 panzoomInstance 无效!");
+            // 打印对象上的所有可用方法，帮助我们诊断
+            if (panzoomInstance) {
+                console.log("panzoomInstance 上的可用键:", Object.keys(panzoomInstance));
+            }
+            return; // 既然 zoom 不存在，提前退出
+        }
+        // --- 调试结束 ---
+
+
         if (!panzoomInstance || !categoryCenters[category]) return;
 
         const categoryMemories = memories.filter(m => m.type === category && m.element);
@@ -1137,16 +1160,16 @@
         const MIN = 0.3, MAX = 5;
         targetScale = Math.max(MIN, Math.min(MAX, targetScale));
 
-        // 3) 正确计算平移（注意：x*scale + translate = 屏幕坐标）
+        // 3) 正确计算平移
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
         const translateX = (containerW / 2) - centerX * targetScale;
         const translateY = (containerH / 2) - centerY * targetScale;
 
         // 4) 应用
-        panzoomInstance.setTransform(translateX, translateY, targetScale, {
-            animate: true
-        });
+        // 修复方案：先立即缩放，再平移动画
+        panzoomInstance.zoom(targetScale, { animate: false });
+        panzoomInstance.pan(translateX, translateY, { animate: true });
     }
 
 </script>
