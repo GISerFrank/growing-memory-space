@@ -1110,6 +1110,10 @@
      * 跳转到指定类别的节点簇 (最终修复版)
      * @param {string} category - 类别名称
      */
+    /**
+     * 跳转到指定类别的节点簇 (使用 setTimeout 修复版)
+     * @param {string} category - 类别名称
+     */
     function jumpToCategory(category) {
         if (!panzoomInstance || !categoryCenters[category]) return;
 
@@ -1149,29 +1153,32 @@
         const centerY = (minY + maxY) / 2;
 
         // 4) 【关键修复】
-        // 我们分两步执行动画，避免冲突
+        // 此库不支持 .then() Promise。我们必须使用 setTimeout 手动分隔动画。
 
         // 4.1) 计算在 *当前* 缩放级别下，让 (centerX, centerY) 居中所需的平移量
         const currentScale = panzoomInstance.getScale();
         const panX = (containerW / 2) - centerX * currentScale;
         const panY = (containerH / 2) - centerY * currentScale;
 
-        // 4.2) 执行平移动画。
-        // .pan() 方法会返回一个 Promise，在动画结束后解析
+        // 4.2) 执行平移动画
+        const panDuration = 400; // 定义一个平移动画时长 (毫秒)
+
         panzoomInstance.pan(panX, panY, {
             animate: true,
-            duration: 400 // 0.4秒
-        })
-            .then(() => {
-                // 4.3) 平移结束后，执行缩放动画
-                // 我们以内容中心 (centerX, centerY) 为焦点 (focal point) 进行缩放
-                // 这样它就会在居中的位置上“放大”
-                panzoomInstance.zoom(targetScale, {
-                    animate: true,
-                    duration: 300, // 0.3秒
-                    focal: { x: centerX, y: centerY }
-                });
+            duration: panDuration
+        });
+
+        // 4.3) 【使用 setTimeout】
+        // 我们等待平移动画 (panDuration) 结束后，再执行缩放
+        setTimeout(() => {
+            // 以内容中心 (centerX, centerY) 为焦点 (focal point) 进行缩放
+            // 这样它就会在居中的位置上“放大”
+            panzoomInstance.zoom(targetScale, {
+                animate: true,
+                duration: 300, // 缩放动画时长
+                focal: { x: centerX, y: centerY }
             });
+        }, panDuration); // 关键：等待 panDuration 毫秒
     }
 
 </script>
