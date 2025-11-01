@@ -1127,34 +1127,28 @@
             maxY = Math.max(maxY, y + height);
         });
 
-        // 计算中心点（地图坐标系）
+        // 计算中心点
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
-        console.log('Category:', category, 'Center:', { centerX, centerY });
-
         const container = baseMap.parentElement;
-        const targetScale = 1.5;
+        const targetScale = 1.5; // 固定缩放级别
 
-        // 关键修复：Panzoom 的 transform 公式是 scale(s) translate(x, y)
-        // 实际屏幕坐标 = (原始坐标 + translate) * scale
-        // 我们要让 centerX, centerY 显示在容器中心
-        // 容器中心 = (centerX + translateX) * scale
-        // translateX = (容器中心 / scale) - centerX
+        // 关键修复：使用 Panzoom 的 reset + zoom + pan 组合
+        // 1. 先重置到初始状态
+        panzoomInstance.reset({ animate: false });
 
-        // ✅ 正确：屏幕坐标 = 原始坐标 * scale + translate
-        const translateX = (container.offsetWidth / 2) - centerX * targetScale;
-        const translateY = (container.offsetHeight / 2) - centerY * targetScale;
+        // 2. 设置缩放（不带动画，避免中间状态）
+        panzoomInstance.zoom(targetScale, { animate: false });
 
-        console.log('Target translate:', { translateX, translateY });
+        // 3. 计算在新缩放级别下的平移距离
+        const x = container.offsetWidth / 2 - centerX * targetScale;
+        const y = container.offsetHeight / 2 - centerY * targetScale;
 
-        // 先设置缩放
-        panzoomInstance.zoom(targetScale, { animate: true });
-
-        // 等待缩放完成后再平移
-        setTimeout(() => {
-            panzoomInstance.pan(translateX, translateY, { animate: true });
-        }, 400);
-    }
+        // 4. 执行平移（带动画）
+        // 使用 setTransform 一次性应用缩放和平移，避免动画冲突
+        panzoomInstance.setTransform(translateX, translateY, targetScale, {
+            animate: true
+        });    }
 
 </script>
 </body>
