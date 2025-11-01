@@ -598,6 +598,14 @@
             }
         });
 
+        // 拖动时切换光标为 grabbing
+        baseMap.addEventListener('panzoom:panstart', () => {
+            baseMap.style.cursor = 'grabbing';
+        });
+        baseMap.addEventListener('panzoom:panend', () => {
+            baseMap.style.cursor = 'grab';
+        });
+
         // 拖动时切换光标
         baseMap.addEventListener('panzoom:panstart', () => {
             baseMap.style.cursor = 'grabbing';
