@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Growing Map</title>
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -154,6 +155,7 @@
             border-radius: 8px;
             position: relative;
             overflow: hidden;
+            cursor: grab;
         }
 
         /* 1. 新增: SVG 画布层样式 */
@@ -557,6 +559,9 @@
         study: { icon: '📚', color: '#90caf9', name: '学习记忆' }
     };
 
+    // --- 3. 新增: 获取 SVG 图层 (用于点击判断) ---
+    const svgLayer = document.getElementById('svgLines');
+
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {
 // 加载已有记忆
@@ -571,11 +576,50 @@
         });
 
 // 点击地图空白处关闭详情
-        baseMap.addEventListener('click', function(e) {
-            if (e.target === baseMap) {
+//         baseMap.addEventListener('click', function(e) {
+//             if (e.target === baseMap) {
+//                 memoryDetail.classList.remove('active');
+//             }
+//         });
+
+        // --- 5. 新增: 初始化 Panzoom ---
+
+        // Panzoom 选项
+        const panzoomOptions = {
+            canvas: true,         // 允许在元素本身上拖动
+            minScale: 0.5,        // 最小缩放
+            maxScale: 3,          // 最大缩放
+            contain: 'inside',    // 限制地图在容器内部
+            step: 0.2,            // 滚轮缩放步长
+
+            // 关键: 告诉 panzoom 拖动建筑或节点时, 不要移动地图
+            // (这样点击事件才能正常触发)
+            excludeClass: 'memory-element'
+        };
+
+        // 在 baseMap 上初始化
+        const pz = Panzoom(baseMap, panzoomOptions);
+
+        // a. 启用鼠标滚轮缩放
+        baseMap.addEventListener('wheel', pz.zoomWithWheel, { passive: true });
+
+        // b. 替换旧的 "点击空白处" 逻辑
+        //    panzoom:click 事件能智能区分 "拖动" 和 "真正的点击"
+        baseMap.addEventListener('panzoom:click', function(e) {
+            // 只有当点击目标是地图本身(或线条层)时, 才关闭详情
+            if (e.target === baseMap || e.target === svgLayer) {
                 memoryDetail.classList.remove('active');
             }
         });
+
+        // c. 拖动时切换光标 (可选, 但体验很好)
+        baseMap.addEventListener('panzoom:panstart', () => {
+            baseMap.style.cursor = 'grabbing';
+        });
+        baseMap.addEventListener('panzoom:panend', () => {
+            baseMap.style.cursor = 'grab';
+        });
+        // --- Panzoom 初始化结束 ---
 
         // 监听文件上传按钮，显示文件名
         const memoryImageInput = document.getElementById('memoryImage');
