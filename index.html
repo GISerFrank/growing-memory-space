@@ -1114,6 +1114,10 @@
      * 跳转到指定类别的节点簇 (使用 setTimeout 修复版)
      * @param {string} category - 类别名称
      */
+    /**
+     * 跳转到指定类别的节点簇 (终极修复版：使用 Delta 差值平移)
+     * @param {string} category - 类别名称
+     */
     function jumpToCategory(category) {
         if (!panzoomInstance || !categoryCenters[category]) return;
 
@@ -1123,7 +1127,7 @@
             return;
         }
 
-        // 1) 求该类别簇的边界框
+        // 1) 求该类别簇的边界框 (这部分不变)
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         categoryMemories.forEach(m => {
             const el = m.element;
@@ -1135,7 +1139,7 @@
             maxY = Math.max(maxY, y + h);
         });
 
-        // 2) 计算合适缩放（带 20% padding）
+        // 2) 计算合适缩放 (这部分不变)
         const container = baseMap.parentElement;
         const padding = 0.2;
         const contentW = (maxX - minX) * (1 + padding * 2);
@@ -1148,37 +1152,44 @@
         const MIN = 0.3, MAX = 5;
         targetScale = Math.max(MIN, Math.min(MAX, targetScale));
 
-        // 3) 计算内容中心点
+        // 3) 计算内容中心点 (这部分不变)
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
 
-        // 4) 【关键修复】
-        // 此库不支持 .then() Promise。我们必须使用 setTimeout 手动分隔动画。
+        // 4) 【关键修复：计算 Delta 差值】
+        // 之前的问题：我们计算的是“绝对”平移量，但 .pan() 方法是“相对”平移。
 
-        // 4.1) 计算在 *当前* 缩放级别下，让 (centerX, centerY) 居中所需的平移量
+        // 4.1) 获取 *当前* 状态
         const currentScale = panzoomInstance.getScale();
-        const panX = (containerW / 2) - centerX * currentScale;
-        const panY = (containerH / 2) - centerY * currentScale;
+        const currentPan = panzoomInstance.getPan(); // { x: number, y: number }
 
-        // 4.2) 执行平移动画
-        const panDuration = 400; // 定义一个平移动画时长 (毫秒)
+        // 4.2) 计算我们 *想要* 到达的 *绝对* 平移量
+        // (公式：TargetPan = ViewportCenter - (ContentCenter * Scale))
+        const targetPanX = (containerW / 2) - centerX * currentScale;
+        const targetPanY = (containerH / 2) - centerY * currentScale;
 
-        panzoomInstance.pan(panX, panY, {
+        // 4.3) 计算需要移动的 *差值 (delta)*
+        const deltaX = targetPanX - currentPan.x;
+        const deltaY = targetPanY - currentPan.y;
+
+        // 4.4) 执行 *相对* 平移动画 (使用 delta 值)
+        const panDuration = 400; // 动画时长
+
+        panzoomInstance.pan(deltaX, deltaY, {
             animate: true,
             duration: panDuration
         });
 
-        // 4.3) 【使用 setTimeout】
-        // 我们等待平移动画 (panDuration) 结束后，再执行缩放
+        // 4.5) 【使用 setTimeout】
+        // (这部分逻辑不变，它现在是正确的)
         setTimeout(() => {
-            // 以内容中心 (centerX, centerY) 为焦点 (focal point) 进行缩放
-            // 这样它就会在居中的位置上“放大”
+            // 在平移结束后，以内容中心为焦点进行缩放
             panzoomInstance.zoom(targetScale, {
                 animate: true,
-                duration: 300, // 缩放动画时长
+                duration: 300,
                 focal: { x: centerX, y: centerY }
             });
-        }, panDuration); // 关键：等待 panDuration 毫秒
+        }, panDuration); // 等待平移动画结束
     }
 
 </script>
