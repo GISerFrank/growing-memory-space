@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Growing Map</title>
-    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+    <script src="simple-panzoom.js"></script>
     <style>
         * {
             margin: 0;
@@ -172,11 +172,12 @@
 
         /* 地图容器样式 - 无限画布 */
         .map-container {
-            background: #fffde7;
+            /*background: #fffde7;*/
+            background: #c8e6c9;     /* <--- 修复: 改为和 .base-map 一样的绿色 */
             border: 4px solid #5d4037;
             border-radius: 12px;
             box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
-            padding: 20px;
+            /*padding: 20px;*/
             position: relative;
             overflow: hidden; /* 隐藏超出部分 */
             height: 600px;
@@ -549,7 +550,7 @@
         <!-- 记忆元素将通过JS动态添加 -->
         <div class="base-map" id="baseMap">
 
-            <svg id="svgLines" class="svg-line-layer"></svg>
+            <svg id="svgLines" class="svg-line-layer" width="3000" height="3000"></svg>
 
             <svg width="0" height="0" style="position:absolute; z-index: -1;">
                 <defs>
@@ -635,12 +636,63 @@
             memoryDetail.classList.remove('active');
         });
 
+        // 【新增】计算初始视图位置
+        let initialX = 0, initialY = 0, initialScale = 1;
+
+        if (memories.length > 0) {
+            // 计算所有节点的边界
+            const elements = memories.filter(m => m.element).map(m => m.element);
+            if (elements.length > 0) {
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+                elements.forEach(el => {
+                    const x = el.offsetLeft;
+                    const y = el.offsetTop;
+                    const w = el.offsetWidth || 100;
+                    const h = el.offsetHeight || 141;
+
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x + w);
+                    maxY = Math.max(maxY, y + h);
+                });
+
+                // 扩展边距
+                const w = maxX - minX;
+                const h = maxY - minY;
+                minX -= w * 0.2;
+                minY -= h * 0.2;
+                maxX += w * 0.2;
+                maxY += h * 0.2;
+
+                // 计算合适的缩放
+                const container = baseMap.parentElement;
+                const contentW = maxX - minX;
+                const contentH = maxY - minY;
+                initialScale = Math.min(
+                    container.offsetWidth / contentW,
+                    container.offsetHeight / contentH
+                );
+                initialScale = Math.max(Math.min(5, initialScale));
+
+                // 计算居中的平移
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+                initialX = container.offsetWidth / 2 - centerX * initialScale;
+                initialY = container.offsetHeight / 2 - centerY * initialScale;
+
+                console.log(`初始视图: scale=${initialScale}, x=${initialX}, y=${initialY}`);
+            }
+        }
+
         // --- 修复: Panzoom 配置 - 地图永远填满视口 ---
         const panzoomOptions = {
-            maxScale: 5,          // 最大缩放 5倍
-            minScale: 0.3,        // 最小缩放 0.3倍
-            startScale: 1,        // 初始缩放比例
-            contain: 'outside',   // 关键：地图永远不会露出外部背景
+            maxScale: 5,
+            minScale: 0.2,
+            startScale: initialScale,
+            startX: initialX,
+            startY: initialY,
+            contain: 'outside',  // ← 删除这行!
             cursor: 'grab',
             excludeClass: 'memory-element'
         };
@@ -649,7 +701,14 @@
         panzoomInstance = Panzoom(baseMap, panzoomOptions);
 
         // 启用鼠标滚轮缩放
-        baseMap.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel);
+        // baseMap.parentElement.addEventListener('wheel', panzoomInstance.zoomWithWheel, { passive: false });
+
+        // // 【新增】初始化时将画布中心对齐到视口中心
+        // const container = baseMap.parentElement;
+        // const initialX = (container.offsetWidth - 3000) / 2;
+        // const initialY = (container.offsetHeight - 3000) / 2;
+        // panzoomInstance.pan(initialX, initialY, { animate: false });
+        // console.log(`初始平移设置为: x=${initialX}, y=${initialY}`);
 
         // 监听缩放事件，动态调整元素尺寸
         baseMap.addEventListener('panzoom:zoom', function(e) {
@@ -673,7 +732,7 @@
         });
 
         // 点击空白处关闭详情面板
-        baseMap.addEventListener('panzoom:click', function(e) {
+        baseMap.addEventListener('click', function(e) {
             // 只有当点击目标是地图本身(或线条层)时, 才关闭详情
             if (e.target === baseMap || e.target === svgLayer) {
                 memoryDetail.classList.remove('active');
@@ -688,12 +747,13 @@
             baseMap.style.cursor = 'grab';
         });
 
-        // 初始化完成后，如果有记忆则自动缩放到合适视图
-        if (memories.length > 0) {
-            setTimeout(() => {
-                fitToMemories();
-            }, 100);
-        }
+        // // 初始化完成后，如果有记忆则自动缩放到合适视图
+        // if (memories.length > 0) {
+        //     setTimeout(() => {
+        //         console.log('准备执行 fitToMemories');
+        //         fitToMemories();
+        //     }, 500);
+        // }
 
         // 拖动时切换光标
         baseMap.addEventListener('panzoom:panstart', () => {
@@ -1043,59 +1103,60 @@
      * 自动缩放地图以适应所有记忆节点
      */
     function fitToMemories() {
+        console.log('fitToMemories 开始执行');
+
         if (!panzoomInstance || memories.length === 0) return;
 
         const elements = memories.filter(m => m.element).map(m => m.element);
         if (elements.length === 0) return;
 
-        // 计算所有节点的边界框
+        // 计算边界框
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
         elements.forEach(el => {
             const x = el.offsetLeft;
             const y = el.offsetTop;
-            const width = el.offsetWidth;
-            const height = el.offsetHeight;
+            const w = el.offsetWidth || 100;
+            const h = el.offsetHeight || 141;
 
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x + width);
-            maxY = Math.max(maxY, y + height);
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
         });
 
-        // 添加20%的边距
-        const padding = 0.2;
-        const width = maxX - minX;
-        const height = maxY - minY;
-        minX -= width * padding;
-        minY -= height * padding;
-        maxX += width * padding;
-        maxY += height * padding;
+        // 扩展 20% 边距
+        const w = maxX - minX;
+        const h = maxY - minY;
+        minX -= w * 0.2;
+        minY -= h * 0.2;
+        maxX += w * 0.2;
+        maxY += h * 0.2;
 
-        // 计算需要的缩放比例
+        // 计算缩放
         const container = baseMap.parentElement;
-        const containerWidth = container.offsetWidth;
-        const containerHeight = container.offsetHeight;
-        const contentWidth = maxX - minX;
-        const contentHeight = maxY - minY;
+        const cw = container.offsetWidth;
+        const ch = container.offsetHeight;
+        const contentW = maxX - minX;
+        const contentH = maxY - minY;
 
-        const scaleX = containerWidth / contentWidth;
-        const scaleY = containerHeight / contentHeight;
-        const targetScale = Math.min(scaleX, scaleY, 5); // 不超过最大缩放
+        let scale = Math.min(cw / contentW, ch / contentH);
+        scale = Math.max(Math.min(5, scale));
 
-        // 计算中心点
+        // 计算平移
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
+        const panX = cw / 2 - centerX * scale;
+        const panY = ch / 2 - centerY * scale;
 
-        // 计算平移距离
-        const x = containerWidth / 2 - centerX * targetScale;
-        const y = containerHeight / 2 - centerY * targetScale;
+        console.log(`目标: scale=${scale}, pan=(${panX}, ${panY})`);
 
-        // 执行缩放和平移（带动画）
-        panzoomInstance.zoom(targetScale, { animate: true });
+        // 【关键修复】先缩放,等渲染完再平移,并使用 force
+        panzoomInstance.zoom(scale, { animate: false, force: true });
+
         setTimeout(() => {
-            panzoomInstance.pan(x, y, { animate: true });
-        }, 100);
+            panzoomInstance.pan(panX, panY, { animate: false, force: true });
+            console.log('✅ fitToMemories 完成');
+        }, 50); // 等待缩放渲染
     }
 
     /**
@@ -1118,6 +1179,10 @@
      * 跳转到指定类别的节点簇 (终极修复版：使用 Delta 差值平移)
      * @param {string} category - 类别名称
      */
+    /**
+     * 跳转到指定类别的节点簇 (终极修复版：复制 fitToMemories 的逻辑)
+     * @param {string} category - 类别名称
+     */
     function jumpToCategory(category) {
         if (!panzoomInstance || !categoryCenters[category]) return;
 
@@ -1127,69 +1192,57 @@
             return;
         }
 
-        // 1) 求该类别簇的边界框 (这部分不变)
+        // 计算边界
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         categoryMemories.forEach(m => {
             const el = m.element;
-            const x = el.offsetLeft, y = el.offsetTop;
-            const w = el.offsetWidth, h = el.offsetHeight;
+            const x = el.offsetLeft;
+            const y = el.offsetTop;
+            const w = el.offsetWidth || 100;
+            const h = el.offsetHeight || 141;
+
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
             maxX = Math.max(maxX, x + w);
             maxY = Math.max(maxY, y + h);
         });
 
-        // 2) 计算合适缩放 (这部分不变)
+        // 扩展边距
+        const w = maxX - minX;
+        const h = maxY - minY;
+        minX -= w * 0.2;
+        minY -= h * 0.2;
+        maxX += w * 0.2;
+        maxY += h * 0.2;
+
+        // 计算缩放和平移
         const container = baseMap.parentElement;
-        const padding = 0.2;
-        const contentW = (maxX - minX) * (1 + padding * 2);
-        const contentH = (maxY - minY) * (1 + padding * 2);
+        const contentW = maxX - minX;
+        const contentH = maxY - minY;
 
-        const containerW = container.offsetWidth;
-        const containerH = container.offsetHeight;
+        let scale = Math.min(
+            container.offsetWidth / contentW,
+            container.offsetHeight / contentH
+        );
+        scale = Math.max(Math.min(5, scale));
 
-        let targetScale = Math.min(containerW / contentW, containerH / contentH);
-        const MIN = 0.3, MAX = 5;
-        targetScale = Math.max(MIN, Math.min(MAX, targetScale));
-
-        // 3) 计算内容中心点 (这部分不变)
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
+        const panX = container.offsetWidth / 2 - centerX * scale;
+        const panY = container.offsetHeight / 2 - centerY * scale;
 
-        // 4) 【关键修复：计算 Delta 差值】
-        // 之前的问题：我们计算的是“绝对”平移量，但 .pan() 方法是“相对”平移。
+        console.log(`jumpToCategory: scale=${scale}, pan=(${panX}, ${panY})`);
 
-        // 4.1) 获取 *当前* 状态
-        const currentScale = panzoomInstance.getScale();
-        const currentPan = panzoomInstance.getPan(); // { x: number, y: number }
-
-        // 4.2) 计算我们 *想要* 到达的 *绝对* 平移量
-        // (公式：TargetPan = ViewportCenter - (ContentCenter * Scale))
-        const targetPanX = (containerW / 2) - centerX * currentScale;
-        const targetPanY = (containerH / 2) - centerY * currentScale;
-
-        // 4.3) 计算需要移动的 *差值 (delta)*
-        const deltaX = targetPanX - currentPan.x;
-        const deltaY = targetPanY - currentPan.y;
-
-        // 4.4) 执行 *相对* 平移动画 (使用 delta 值)
-        const panDuration = 400; // 动画时长
-
-        panzoomInstance.pan(deltaX, deltaY, {
-            animate: true,
-            duration: panDuration
+        // 【关键】临时修改 startX/Y/Scale,然后 reset
+        panzoomInstance.setOptions({
+            startX: panX,
+            startY: panY,
+            startScale: scale
         });
 
-        // 4.5) 【使用 setTimeout】
-        // (这部分逻辑不变，它现在是正确的)
-        setTimeout(() => {
-            // 在平移结束后，以内容中心为焦点进行缩放
-            panzoomInstance.zoom(targetScale, {
-                animate: true,
-                duration: 300,
-                focal: { x: centerX, y: centerY }
-            });
-        }, panDuration); // 等待平移动画结束
+        panzoomInstance.reset({ animate: true });
+
+        console.log('✅ jumpToCategory 完成');
     }
 
 </script>
