@@ -587,9 +587,9 @@
         // Panzoom 选项
         const panzoomOptions = {
             canvas: true,         // 允许在元素本身上拖动
-            minScale: 0.5,        // 最小缩放
+            // minScale: 0.5,        // 最小缩放
             maxScale: 3,          // 最大缩放
-            contain: 'inside',    // 限制地图在容器内部
+            contain: 'outside',    // 限制地图在容器内部
             step: 0.2,            // 滚轮缩放步长
 
             // 关键: 告诉 panzoom 拖动建筑或节点时, 不要移动地图
