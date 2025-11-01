@@ -1111,44 +1111,43 @@
             return;
         }
 
-        // 计算该类别的边界框
-        const elements = categoryMemories.map(m => m.element);
+        // 1) 求该类别簇的边界框
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-        elements.forEach(el => {
-            const x = el.offsetLeft;
-            const y = el.offsetTop;
-            const width = el.offsetWidth;
-            const height = el.offsetHeight;
-
+        categoryMemories.forEach(m => {
+            const el = m.element;
+            const x = el.offsetLeft, y = el.offsetTop;
+            const w = el.offsetWidth, h = el.offsetHeight;
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x + width);
-            maxY = Math.max(maxY, y + height);
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
         });
 
-        // 计算中心点
+        // 2) 计算合适缩放（带 20% padding）
+        const container = baseMap.parentElement;
+        const padding = 0.2;
+        const contentW = (maxX - minX) * (1 + padding * 2);
+        const contentH = (maxY - minY) * (1 + padding * 2);
+
+        const containerW = container.offsetWidth;
+        const containerH = container.offsetHeight;
+
+        let targetScale = Math.min(containerW / contentW, containerH / contentH);
+        // 与初始化时保持一致的边界
+        const MIN = 0.3, MAX = 5;
+        targetScale = Math.max(MIN, Math.min(MAX, targetScale));
+
+        // 3) 正确计算平移（注意：x*scale + translate = 屏幕坐标）
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
-        const container = baseMap.parentElement;
-        const targetScale = 1.5; // 固定缩放级别
+        const translateX = (containerW / 2) - centerX * targetScale;
+        const translateY = (containerH / 2) - centerY * targetScale;
 
-        // 关键修复：使用 Panzoom 的 reset + zoom + pan 组合
-        // 1. 先重置到初始状态
-        panzoomInstance.reset({ animate: false });
-
-        // 2. 设置缩放（不带动画，避免中间状态）
-        panzoomInstance.zoom(targetScale, { animate: false });
-
-        // 3. 计算在新缩放级别下的平移距离
-        const x = container.offsetWidth / 2 - centerX * targetScale;
-        const y = container.offsetHeight / 2 - centerY * targetScale;
-
-        // 4. 执行平移（带动画）
-        // 使用 setTransform 一次性应用缩放和平移，避免动画冲突
+        // 4) 应用
         panzoomInstance.setTransform(translateX, translateY, targetScale, {
             animate: true
-        });    }
+        });
+    }
 
 </script>
 </body>
