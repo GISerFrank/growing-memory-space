@@ -156,6 +156,85 @@
             overflow: hidden;
         }
 
+        /* 1. 新增: SVG 画布层样式 */
+        .svg-line-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5; /* 确保它在地图背景之上, 在建筑之下 */
+            pointer-events: none; /* 关键: 让鼠标可以点击穿透它 */
+        }
+
+        /* 2. 新增: 记忆节点 (在建筑脚下) */
+        .memory-node {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #5d4037; /* 漫画风格边框 */
+            border-radius: 50%;
+            position: absolute;
+            bottom: -10px; /* 放在"脚下" */
+            left: 50%;
+            box-shadow: 2px 2px 0 rgba(93, 64, 55, 0.2);
+            z-index: 15;
+            cursor: pointer;
+            transition: all 0.3s ease;
+
+            /* 3. 新增: 动画光效 (脉冲) */
+            animation: pulse-glow 2.5s infinite ease-in-out;
+        }
+
+        /* 4. 新增: 节点光效动画 */
+        @keyframes pulse-glow {
+            0% {
+                transform: translateX(-50%) scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translateX(-50%) scale(1.25);
+                opacity: 1;
+                /* 使用 currentColor 来获取节点的背景色 */
+                box-shadow: 2px 2px 0 rgba(93, 64, 55, 0.2), 0 0 15px currentColor;
+            }
+            100% {
+                transform: translateX(-50%) scale(1);
+                opacity: 0.7;
+            }
+        }
+
+        /* 5. 新增: 记忆连接线 */
+        .connection-line {
+            fill: none;
+            stroke-width: 4px; /* 粗线条, 匹配漫画风格 */
+            stroke-linecap: round;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+
+            /* 6. 新增: 关键! 应用手绘滤镜 */
+            filter: url(#wobbly-line);
+        }
+
+        /* 7. 新增: 悬停效果 */
+        .memory-element:hover .memory-node {
+            transform: translateX(-50%) scale(1.4);
+            /* 强大的光晕效果 */
+            filter: drop-shadow(0 0 12px currentColor) drop-shadow(0 0 6px currentColor);
+            animation: none; /* 悬停时停止脉冲, 保持高亮 */
+            opacity: 1;
+        }
+
+        .connection-line.highlight {
+            stroke-width: 6px;
+            opacity: 0.9;
+        }
+
+        /* 8. 新增: 用于从列表项悬停时高亮地图元素 */
+        .memory-element.hover-highlight {
+            transform: scale(1.1); /* 轻轻放大 */
+            z-index: 99;
+        }
+
         /* 记忆元素样式 */
         .memory-element {
             position: absolute;
@@ -418,8 +497,20 @@
     </div>
 
     <div class="map-container">
-        <div class="base-map" id="baseMap">
             <!-- 记忆元素将通过JS动态添加 -->
+            <div class="base-map" id="baseMap">
+
+                <svg id="svgLines" class="svg-line-layer"></svg>
+
+                <svg width="0" height="0" style="position:absolute; z-index: -1;">
+                    <defs>
+                        <filter id="wobbly-line">
+                            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+                            <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" />
+                        </filter>
+                    </defs>
+                </svg>
+            </div>
         </div>
 
         <div class="memory-detail" id="memoryDetail">
@@ -520,7 +611,13 @@
 // 添加记忆到列表
         sortedMemories.forEach(memory => {
             addMemoryToList(memory);
-            addMemoryToMap(memory);
+            const memoryElement = addMemoryToMap(memory);
+            memory.element = memoryElement;
+        });
+
+        // --- 新增: 在所有元素都加载后, 绘制所有类型的线条 ---
+        Object.keys(memoryTypes).forEach(type => {
+            updateMemoryLines(type);
         });
     }
 
@@ -545,6 +642,24 @@
 // 显示详情
             showMemoryDetail(memory);
         });
+
+        // --- 新增代码开始 ---
+        // 悬停列表项时高亮地图元素和线条
+        memoryItem.addEventListener('mouseover', () => {
+            if (memory.element) {
+                memory.element.classList.add('hover-highlight');
+                // 触发线条高亮
+                document.querySelectorAll(`.connection-line[data-type="${memory.type}"]`).forEach(line => line.classList.add('highlight'));
+            }
+        });
+        memoryItem.addEventListener('mouseout', () => {
+            if (memory.element) {
+                memory.element.classList.remove('hover-highlight');
+                // 取消线条高亮
+                document.querySelectorAll(`.connection-line.highlight[data-type="${memory.type}"]`).forEach(line => line.classList.remove('highlight'));
+            }
+        });
+        // --- 新增代码结束 ---
 
         memoriesContainer.appendChild(memoryItem);
     }
@@ -581,6 +696,32 @@
     <div class="memory-element-title" style="text-align: center; margin-top: 5px;">${memory.title}</div>
 `;
 
+        // --- 新增代码开始 ---
+        // 1. 创建记忆节点
+        const node = document.createElement('div');
+        node.className = 'memory-node';
+        // 2. 使用记忆类型的颜色
+        node.style.backgroundColor = memoryTypes[memory.type].color;
+        node.style.borderColor = memoryTypes[memory.type].color;
+        // 使用 CSS 滤镜添加辉光, color 不能是 #... 格式, 必须是 HSL 或 RGB
+        // 为了悬停时的 'currentColor' 生效, 我们用 CSS 变量
+        node.style.color = memoryTypes[memory.type].color;
+
+        // 3. 将节点附加到元素上
+        memoryElement.appendChild(node);
+
+        // 4. 在元素上存储对节点的引用 (方便稍后计算位置)
+        memoryElement.memoryNode = node;
+
+        // 5. 添加悬停事件来高亮线条
+        memoryElement.addEventListener('mouseover', () => {
+            document.querySelectorAll(`.connection-line[data-type="${memory.type}"]`).forEach(line => line.classList.add('highlight'));
+        });
+        memoryElement.addEventListener('mouseout', () => {
+            document.querySelectorAll(`.connection-line.highlight[data-type="${memory.type}"]`).forEach(line => line.classList.remove('highlight'));
+        });
+        // --- 新增代码结束 ---
+
 // 添加点击事件
         memoryElement.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -607,6 +748,9 @@
                 memoryElement.classList.remove('growing');
             }, 1500);
         }
+
+        // --- 修改: 返回创建的元素 ---
+        return memoryElement;
     }
 
     // 显示记忆详情
@@ -698,7 +842,12 @@
 
 // 更新UI
         addMemoryToList(memory);
-        addMemoryToMap(memory, true);
+// --- 修改: 捕获返回的元素并存储它 ---
+        const memoryElement = addMemoryToMap(memory, true);
+        memory.element = memoryElement;
+
+        // --- 新增: 更新该类型的线条 ---
+        updateMemoryLines(memory.type);
 
 // 重置表单
         document.getElementById('memoryTitle').value = '';
@@ -714,6 +863,53 @@
     function formatDate(dateString) {
         const date = new Date(dateString);
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+
+    // --- 全新函数 ---
+    /**
+     * 更新并重绘一个特定类型的所有记忆连接线
+     * @param {string} type - 记忆类型 (e.g., 'food', 'study')
+     */
+    function updateMemoryLines(type) {
+        const svgLayer = document.getElementById('svgLines');
+
+        // 1. 清除此类型的所有旧线条
+        svgLayer.querySelectorAll(`.connection-line[data-type="${type}"]`).forEach(line => line.remove());
+
+        // 2. 找到此类型的所有记忆, 并按日期排序
+        const elements = memories
+            .filter(m => m.type === type && m.element) // 确保它有对应的 DOM 元素
+            .sort((a, b) => new Date(a.date) - new Date(b.date)) // 按时间顺序连接
+            .map(m => m.element); // 只获取 DOM 元素
+
+        if (elements.length < 2) return; // 至少需要两个点才能连线
+
+        // 3. 循环绘制线条 (从点 1 到 2, 2 到 3, ...)
+        for (let i = 0; i < elements.length - 1; i++) {
+            const el1 = elements[i];
+            const el2 = elements[i + 1];
+
+            const node1 = el1.memoryNode;
+            const node2 = el2.memoryNode;
+
+            if (!node1 || !node2) continue; // 安全检查
+
+            // 4. 计算节点的绝对位置 (相对于 #baseMap)
+            // 位置 = 元素左上角 + 节点在元素内的偏移 + 节点大小的一半
+            const x1 = el1.offsetLeft + node1.offsetLeft + (node1.offsetWidth / 2);
+            const y1 = el1.offsetTop + node1.offsetTop + (node1.offsetHeight / 2);
+            const x2 = el2.offsetLeft + node2.offsetLeft + (node2.offsetWidth / 2);
+            const y2 = el2.offsetTop + node2.offsetTop + (node2.offsetHeight / 2);
+
+            // 5. 创建 SVG <path> 元素
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', `M${x1},${y1} L${x2},${y2}`); // 绘制一条直线 (滤镜会使其变弯)
+            path.setAttribute('class', 'connection-line');
+            path.setAttribute('data-type', type);
+            path.style.stroke = memoryTypes[type].color; // 使用类别颜色
+
+            svgLayer.appendChild(path);
+        }
     }
 </script>
 </body>
