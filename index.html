@@ -1127,25 +1127,33 @@
             maxY = Math.max(maxY, y + height);
         });
 
-        // 计算中心点
+        // 添加调试信息
+        console.log('Category:', category);
+        console.log('Bounds:', { minX, minY, maxX, maxY });
+
+        // 计算中心点（地图坐标系）
         const centerX = (minX + maxX) / 2;
         const centerY = (minY + maxY) / 2;
+        console.log('Center:', { centerX, centerY });
+
         const container = baseMap.parentElement;
-        const targetScale = 1.5; // 固定缩放级别
+        const targetScale = 1.5;
 
-        // 关键修复：使用 Panzoom 的 reset + zoom + pan 组合
-        // 1. 先重置到初始状态
-        panzoomInstance.reset({ animate: false });
+        // 先设置缩放
+        panzoomInstance.zoom(targetScale, { animate: true, force: true });
 
-        // 2. 设置缩放（不带动画，避免中间状态）
-        panzoomInstance.zoom(targetScale, { animate: false });
+        // 等待缩放完成后再平移
+        setTimeout(() => {
+            // 计算平移：容器中心 - (地图中心点 * 缩放)
+            const targetX = (container.offsetWidth / 2) - (centerX * targetScale);
+            const targetY = (container.offsetHeight / 2) - (centerY * targetScale);
 
-        // 3. 计算在新缩放级别下的平移距离
-        const x = container.offsetWidth / 2 - centerX * targetScale;
-        const y = container.offsetHeight / 2 - centerY * targetScale;
+            console.log('Target pan:', { targetX, targetY });
+            console.log('Container size:', container.offsetWidth, container.offsetHeight);
 
-        // 4. 执行平移（带动画）
-        panzoomInstance.pan(x, y, { animate: true });
+            // 使用 absolute pan（非相对）
+            panzoomInstance.pan(targetX, targetY, { animate: true, force: true });
+        }, 400);
     }
 
 </script>
