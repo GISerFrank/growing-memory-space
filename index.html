@@ -136,7 +136,7 @@
             color: #8d6e63;
         }
 
-        /* 地图容器样式 */
+        /* 地图容器样式 - 无限画布 */
         .map-container {
             background: #fffde7;
             border: 4px solid #5d4037;
@@ -144,17 +144,16 @@
             box-shadow: 8px 8px 0 rgba(93, 64, 55, 0.2);
             padding: 20px;
             position: relative;
-            overflow: hidden;
-            min-height: 600px;
+            overflow: hidden; /* 隐藏超出部分 */
+            height: 600px;
         }
 
         .base-map {
-            width: 100%;
-            height: 100%;
+            width: 3000px;  /* 超大画布 */
+            height: 3000px; /* 超大画布 */
             background: #c8e6c9;
             border-radius: 8px;
             position: relative;
-            overflow: hidden;
             cursor: grab;
         }
 
@@ -429,7 +428,7 @@
 
             .map-container {
                 order: 1;
-                min-height: 500px;
+                height: 500px;
             }
         }
 
@@ -499,37 +498,37 @@
     </div>
 
     <div class="map-container">
-            <!-- 记忆元素将通过JS动态添加 -->
-            <div class="base-map" id="baseMap">
+        <!-- 记忆元素将通过JS动态添加 -->
+        <div class="base-map" id="baseMap">
 
-                <svg id="svgLines" class="svg-line-layer"></svg>
+            <svg id="svgLines" class="svg-line-layer"></svg>
 
-                <svg width="0" height="0" style="position:absolute; z-index: -1;">
-                    <defs>
-                        <filter id="wobbly-line">
-                            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
-                            <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" />
-                        </filter>
-                    </defs>
-                </svg>
-            </div>
-        </div>
-
-        <div class="memory-detail" id="memoryDetail">
-            <div class="detail-header">
-                <h3 class="detail-title" id="detailTitle">记忆标题</h3>
-                <div class="close-detail" id="closeDetail">×</div>
-            </div>
-            <div class="detail-content">
-                <img src="" alt="记忆图片" class="detail-image" id="detailImage">
-                <p class="detail-text" id="detailText">记忆内容...</p>
-                <audio controls class="detail-audio" id="detailAudio">
-                    您的浏览器不支持音频元素。
-                </audio>
-            </div>
-            <div class="detail-date" id="detailDate">日期：</div>
+            <svg width="0" height="0" style="position:absolute; z-index: -1;">
+                <defs>
+                    <filter id="wobbly-line">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" />
+                    </filter>
+                </defs>
+            </svg>
         </div>
     </div>
+
+    <div class="memory-detail" id="memoryDetail">
+        <div class="detail-header">
+            <h3 class="detail-title" id="detailTitle">记忆标题</h3>
+            <div class="close-detail" id="closeDetail">×</div>
+        </div>
+        <div class="detail-content">
+            <img src="" alt="记忆图片" class="detail-image" id="detailImage">
+            <p class="detail-text" id="detailText">记忆内容...</p>
+            <audio controls class="detail-audio" id="detailAudio">
+                您的浏览器不支持音频元素。
+            </audio>
+        </div>
+        <div class="detail-date" id="detailDate">日期：</div>
+    </div>
+</div>
 </div>
 
 <script>
@@ -564,47 +563,34 @@
 
     // 初始化
     document.addEventListener('DOMContentLoaded', function() {
-// 加载已有记忆
+        // 加载已有记忆
         loadMemories();
 
-// 添加记忆事件
+        // 添加记忆事件
         addMemoryBtn.addEventListener('click', addNewMemory);
 
-// 关闭详情面板
+        // 关闭详情面板
         closeDetail.addEventListener('click', function() {
             memoryDetail.classList.remove('active');
         });
 
-// 点击地图空白处关闭详情
-//         baseMap.addEventListener('click', function(e) {
-//             if (e.target === baseMap) {
-//                 memoryDetail.classList.remove('active');
-//             }
-//         });
-
-        // --- 5. 新增: 初始化 Panzoom ---
-
-        // Panzoom 选项
+        // --- 修复: Panzoom 配置 - 地图永远填满视口 ---
         const panzoomOptions = {
-            canvas: true,         // 允许在元素本身上拖动
-            // minScale: 0.5,        // 最小缩放
-            maxScale: 3,          // 最大缩放
-            contain: 'outside',    // 限制地图在容器内部
-            step: 0.2,            // 滚轮缩放步长
-
-            // 关键: 告诉 panzoom 拖动建筑或节点时, 不要移动地图
-            // (这样点击事件才能正常触发)
+            maxScale: 5,          // 最大缩放 5倍
+            minScale: 0.3,        // 最小缩放 0.3倍
+            startScale: 1,        // 初始缩放比例
+            contain: 'outside',   // 关键：地图永远不会露出外部背景
+            cursor: 'grab',
             excludeClass: 'memory-element'
         };
 
         // 在 baseMap 上初始化
         const pz = Panzoom(baseMap, panzoomOptions);
 
-        // a. 启用鼠标滚轮缩放
-        baseMap.addEventListener('wheel', pz.zoomWithWheel, { passive: true });
+        // 启用鼠标滚轮缩放
+        baseMap.parentElement.addEventListener('wheel', pz.zoomWithWheel);
 
-        // b. 替换旧的 "点击空白处" 逻辑
-        //    panzoom:click 事件能智能区分 "拖动" 和 "真正的点击"
+        // 点击空白处关闭详情面板
         baseMap.addEventListener('panzoom:click', function(e) {
             // 只有当点击目标是地图本身(或线条层)时, 才关闭详情
             if (e.target === baseMap || e.target === svgLayer) {
@@ -612,14 +598,13 @@
             }
         });
 
-        // c. 拖动时切换光标 (可选, 但体验很好)
+        // 拖动时切换光标
         baseMap.addEventListener('panzoom:panstart', () => {
             baseMap.style.cursor = 'grabbing';
         });
         baseMap.addEventListener('panzoom:panend', () => {
             baseMap.style.cursor = 'grab';
         });
-        // --- Panzoom 初始化结束 ---
 
         // 监听文件上传按钮，显示文件名
         const memoryImageInput = document.getElementById('memoryImage');
@@ -646,13 +631,13 @@
 
     // 加载记忆
     function loadMemories() {
-// 清空容器
+        // 清空容器
         memoriesContainer.innerHTML = '';
 
-// 按日期排序（最新的在前）
+        // 按日期排序（最新的在前）
         const sortedMemories = [...memories].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-// 添加记忆到列表
+        // 添加记忆到列表
         sortedMemories.forEach(memory => {
             addMemoryToList(memory);
             const memoryElement = addMemoryToMap(memory);
@@ -672,22 +657,21 @@
         memoryItem.dataset.id = memory.id;
 
         memoryItem.innerHTML = `
-<div class="memory-title">${memory.title}</div>
-<div class="memory-date">${formatDate(memory.date)} • ${memoryTypes[memory.type].name}</div>
-`;
+            <div class="memory-title">${memory.title}</div>
+            <div class="memory-date">${formatDate(memory.date)} • ${memoryTypes[memory.type].name}</div>
+        `;
 
         memoryItem.addEventListener('click', function() {
-// 高亮显示
+            // 高亮显示
             document.querySelectorAll('.memory-item').forEach(item => {
                 item.classList.remove('active');
             });
             this.classList.add('active');
 
-// 显示详情
+            // 显示详情
             showMemoryDetail(memory);
         });
 
-        // --- 新增代码开始 ---
         // 悬停列表项时高亮地图元素和线条
         memoryItem.addEventListener('mouseover', () => {
             if (memory.element) {
@@ -703,14 +687,13 @@
                 document.querySelectorAll(`.connection-line.highlight[data-type="${memory.type}"]`).forEach(line => line.classList.remove('highlight'));
             }
         });
-        // --- 新增代码结束 ---
 
         memoriesContainer.appendChild(memoryItem);
     }
 
     // 添加记忆到地图
     function addMemoryToMap(memory, animate = false) {
-// 1. 定义一个建筑图片映射
+        // 1. 定义一个建筑图片映射
         const buildingImages = {
             food: 'images/food_memory.png',
             travel: 'images/travel_memory.png',
@@ -720,35 +703,32 @@
             work: 'images/work_memory.png'
         };
 
-// 2. 获取对应的图片路径
+        // 2. 获取对应的图片路径
         const buildingImageSrc = buildingImages[memory.type];
 
         const memoryElement = document.createElement('div');
         memoryElement.className = 'memory-element';
         memoryElement.dataset.id = memory.id;
 
-// 随机位置（在实际应用中，可以根据记忆内容生成特定位置）
+        // 随机位置（在实际应用中，可以根据记忆内容生成特定位置）
         const x = 10 + Math.random() * 80;
         const y = 10 + Math.random() * 80;
 
         memoryElement.style.left = `${x}%`;
         memoryElement.style.top = `${y}%`;
 
-// 3. 不再用 bubble, 而是用 <img>
+        // 3. 不再用 bubble, 而是用 <img>
         memoryElement.innerHTML = `
-    <img src="${buildingImageSrc}" alt="${memory.title}" style="width: 100px; height: auto;">
-    <div class="memory-element-title" style="text-align: center; margin-top: 5px;">${memory.title}</div>
-`;
+            <img src="${buildingImageSrc}" alt="${memory.title}" style="width: 100px; height: auto;">
+            <div class="memory-element-title" style="text-align: center; margin-top: 5px;">${memory.title}</div>
+        `;
 
-        // --- 新增代码开始 ---
         // 1. 创建记忆节点
         const node = document.createElement('div');
         node.className = 'memory-node';
         // 2. 使用记忆类型的颜色
         node.style.backgroundColor = memoryTypes[memory.type].color;
         node.style.borderColor = memoryTypes[memory.type].color;
-        // 使用 CSS 滤镜添加辉光, color 不能是 #... 格式, 必须是 HSL 或 RGB
-        // 为了悬停时的 'currentColor' 生效, 我们用 CSS 变量
         node.style.color = memoryTypes[memory.type].color;
 
         // 3. 将节点附加到元素上
@@ -764,17 +744,16 @@
         memoryElement.addEventListener('mouseout', () => {
             document.querySelectorAll(`.connection-line.highlight[data-type="${memory.type}"]`).forEach(line => line.classList.remove('highlight'));
         });
-        // --- 新增代码结束 ---
 
-// 添加点击事件
+        // 添加点击事件
         memoryElement.addEventListener('click', function(e) {
             e.stopPropagation();
             showMemoryDetail(memory);
 
-// 在列表中也高亮显示
+            // 在列表中也高亮显示
             document.querySelectorAll('.memory-item').forEach(item => {
                 item.classList.remove('active');
-// 使用 Number() 把字符串转为数字，然后用 === 比较
+                // 使用 Number() 把字符串转为数字，然后用 === 比较
                 if (Number(item.dataset.id) === memory.id) {
                     item.classList.add('active');
                 }
@@ -783,17 +762,16 @@
 
         baseMap.appendChild(memoryElement);
 
-// 添加生长动画
+        // 添加生长动画
         if (animate) {
             memoryElement.classList.add('growing');
 
-// 动画结束后移除类
+            // 动画结束后移除类
             setTimeout(() => {
                 memoryElement.classList.remove('growing');
             }, 1500);
         }
 
-        // --- 修改: 返回创建的元素 ---
         return memoryElement;
     }
 
@@ -803,7 +781,7 @@
         detailText.textContent = memory.content;
         detailDate.textContent = `日期：${formatDate(memory.date)}`;
 
-// 设置图片
+        // 设置图片
         if (memory.image) {
             detailImage.src = memory.image;
             detailImage.style.display = 'block';
@@ -811,7 +789,7 @@
             detailImage.style.display = 'none';
         }
 
-// 设置音频
+        // 设置音频
         if (memory.audio) {
             detailAudio.src = memory.audio;
             detailAudio.style.display = 'block';
@@ -836,7 +814,7 @@
             return;
         }
 
-// 创建新记忆对象
+        // 创建新记忆对象
         const newMemory = {
             id: nextMemoryId++,
             title,
@@ -847,7 +825,7 @@
             audio: null
         };
 
-// 处理图片文件
+        // 处理图片文件
         if (imageFile) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -859,47 +837,46 @@
             finishAddingMemory(newMemory);
         }
 
-// 处理音频文件
+        // 处理音频文件
         if (audioFile) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 newMemory.audio = e.target.result;
-// 如果已经有图片，不需要再次调用finishAddingMemory
+                // 如果已经有图片，不需要再次调用finishAddingMemory
                 if (!imageFile) {
                     finishAddingMemory(newMemory);
                 }
             };
             reader.readAsDataURL(audioFile);
         } else if (!imageFile) {
-// 如果没有图片和音频，直接完成
+            // 如果没有图片和音频，直接完成
             finishAddingMemory(newMemory);
         }
     }
 
     // 完成添加记忆
     function finishAddingMemory(memory) {
-// 添加到记忆数组
+        // 添加到记忆数组
         memories.push(memory);
 
-// 保存到本地存储
+        // 保存到本地存储
         localStorage.setItem('memories', JSON.stringify(memories));
 
-// 更新UI
+        // 更新UI
         addMemoryToList(memory);
-// --- 修改: 捕获返回的元素并存储它 ---
         const memoryElement = addMemoryToMap(memory, true);
         memory.element = memoryElement;
 
-        // --- 新增: 更新该类型的线条 ---
+        // 更新该类型的线条
         updateMemoryLines(memory.type);
 
-// 重置表单
+        // 重置表单
         document.getElementById('memoryTitle').value = '';
         document.getElementById('memoryContent').value = '';
         document.getElementById('memoryImage').value = '';
         document.getElementById('memoryAudio').value = '';
 
-// 显示提示
+        // 显示提示
         alert('记忆已成功添加到地图！');
     }
 
@@ -909,7 +886,6 @@
         return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     }
 
-    // --- 全新函数 ---
     /**
      * 更新并重绘一个特定类型的所有记忆连接线
      * @param {string} type - 记忆类型 (e.g., 'food', 'study')
@@ -939,7 +915,6 @@
             if (!node1 || !node2) continue; // 安全检查
 
             // 4. 计算节点的绝对位置 (相对于 #baseMap)
-            // 位置 = 元素左上角 + 节点在元素内的偏移 + 节点大小的一半
             const x1 = el1.offsetLeft + node1.offsetLeft + (node1.offsetWidth / 2);
             const y1 = el1.offsetTop + node1.offsetTop + (node1.offsetHeight / 2);
             const x2 = el2.offsetLeft + node2.offsetLeft + (node2.offsetWidth / 2);
@@ -947,10 +922,10 @@
 
             // 5. 创建 SVG <path> 元素
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', `M${x1},${y1} L${x2},${y2}`); // 绘制一条直线 (滤镜会使其变弯)
+            path.setAttribute('d', `M${x1},${y1} L${x2},${y2}`);
             path.setAttribute('class', 'connection-line');
             path.setAttribute('data-type', type);
-            path.style.stroke = memoryTypes[type].color; // 使用类别颜色
+            path.style.stroke = memoryTypes[type].color;
 
             svgLayer.appendChild(path);
         }
